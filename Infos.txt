@@ -1,0 +1,1 @@
+schachbrett-muster:5 cm
