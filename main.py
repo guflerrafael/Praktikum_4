@@ -4,14 +4,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.signal
 import scipy.integrate
+import os
 
 # Funktionen zum Plotten der Arbeitsschritte
 def plot_steps(time, emg, label):
+    directory = os.path.join(os.getcwd(), "images")
+    path = os.path.join(directory, label + ".png")
+
     plt.figure()
     plt.plot(time, emg)
     plt.xlabel("Zeit / Sekunden")
     plt.ylabel("EMG / mV")
-    plt.savefig(label + '.png')
+    plt.savefig(path)
 
 # Funktionen zum Verarbeiten der EMG-Daten
 
