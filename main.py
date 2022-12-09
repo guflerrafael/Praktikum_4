@@ -5,99 +5,67 @@ import numpy as np
 import scipy.signal
 import scipy.integrate
 
-def eliminate_offset(emg, time, label):
-    # Plot vorher
+# Funktionen zum Plotten der Arbeitsschritte
+def plot_steps(time, emg, label):
     plt.figure()
     plt.plot(time, emg)
     plt.xlabel("Zeit / Sekunden")
     plt.ylabel("EMG / mV")
-    #plt.savefig("vor_average.png")
-    plt.savefig('vor_average' + label + '.png')
+    plt.savefig(label + '.png')
+
+# Funktionen zum Verarbeiten der EMG-Daten
+
+def eliminate_offset(emg, time, label):
+    # Plot vorher
+    plot_steps(time, emg, "vor_average" + label)
 
     # Average berechnen und abziehen
     average = np.average(emg)
     emg = emg - average
 
     # Plot nachher
-    plt.figure()
-    plt.plot(time, emg)
-    plt.xlabel("Zeit / Sekunden")
-    plt.ylabel("EMG / mV")
-    #plt.savefig("nach_average.png")
-    plt.savefig('nach_average' + label + '.png')
+    plot_steps(time, emg, "nach_average" + label)
     
     return emg
 
 def filter_signal(emg, time, low_band, high_band, fs, label):
     # Plot vorher
-    plt.figure()
-    plt.plot(time, emg)
-    plt.xlabel("Zeit / Sekunden")
-    plt.ylabel("EMG / mV")
-    #plt.savefig("vor_bandpass.png")
-    plt.savefig('vor_bandpass' + label + '.png')
+    plot_steps(time, emg, "vor_bandpass" + label)
 
     b, a = scipy.signal.butter(4, [low_band, high_band], btype="bandpass", analog=False, fs=fs)
     emg = scipy.signal.filtfilt(b, a, emg)
 
     # Plot nachher
-    plt.figure()
-    plt.plot(time, emg)
-    plt.xlabel("Zeit / Sekunden")
-    plt.ylabel("EMG / mV")
-    #plt.savefig("nach_bandpass.png")
-    plt.savefig('nach_bandpass' + label + '.png')
+    plot_steps(time, emg, "nach_bandpass" + label)
 
     return emg
 
 def rectify_signal(emg, time, label):
     # Plot vorher
-    plt.figure()
-    plt.plot(time, emg)
-    plt.xlabel("Zeit / Sekunden")
-    plt.ylabel("EMG / mV")
-    #plt.savefig("vor_rectify.png")
-    plt.savefig('vor_rectify' + label + '.png')
+    plot_steps(time, emg, "vor_rectify" + label)
 
     emg = abs(emg)
 
     # Plot nachher
-    plt.figure()
-    plt.plot(time, emg)
-    plt.xlabel("Zeit / Sekunden")
-    plt.ylabel("EMG / mV")
-    #plt.savefig("nach_rectify.png")
-    plt.savefig('nach_rectify' + label + '.png')
+    plot_steps(time, emg, "nach_rectify" + label)
 
     return emg  
 
 def envelope_signal(emg, time, low_pass, fs, label):
     # Plot vorher
-    plt.figure()
-    plt.plot(time, emg)
-    plt.xlabel("Zeit / Sekunden")
-    plt.ylabel("EMG / mV")
-    #plt.savefig("vor_envelope.png")
-    plt.savefig('vor_envelope' + label + '.png')
+    plot_steps(time, emg, "vor_envelope" + label)
 
     low_pass = low_pass / (fs / 2)
     b, a = scipy.signal.butter(4, low_pass, btype='lowpass')
     emg = scipy.signal.filtfilt(b, a, emg)
 
     # Plot nachher
-    plt.figure()
-    plt.plot(time, emg)
-    plt.xlabel("Zeit / Sekunden")
-    plt.ylabel("EMG / mV")
-    #plt.savefig("nach_envelope.png")
-    plt.savefig('nach_envelope' + label + '.png')
+    plot_steps(time, emg, "nach_envelope" + label)
 
-    return emg  
+    return emg 
 
 
-# Aufgabe 1 Vorverarbeiten der EMG Daten
 # Datensätze importieren
-# weights, mvc, fatigue = l3f.import_data("\t")
 
 data_hamstring, emg_offset, emg_filtered, emg_rectified, emg_envelope = [], [], [], [], []
 column_names = ["angle", "a_x", "a_y", "a_z", "emg", "time"]
