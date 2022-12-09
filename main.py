@@ -7,8 +7,9 @@ import scipy.integrate
 import os
 
 # Funktionen zum Plotten der Arbeitsschritte
-def plot_steps(time, emg, label):
+def plot_steps_emg(time, emg, label):
     directory = os.path.join(os.getcwd(), "images")
+    directory = os.path.join(directory, "emg")
     path = os.path.join(directory, label + ".png")
 
     plt.figure()
@@ -17,61 +18,38 @@ def plot_steps(time, emg, label):
     plt.ylabel("EMG / mV")
     plt.savefig(path)
 
-# Funktionen zum Verarbeiten der EMG-Daten
+# Funktion zum Verarbeiten der EMG-Daten
+def process_emg(emg, time, fs, label):
+    low_band, high_band, low_pass = 20, 450, 20
 
-def eliminate_offset(emg, time, label):
-    # Plot vorher
-    plot_steps(time, emg, "vor_average" + label)
+    plot_steps_emg(time, emg, "vor_average" + label)
 
     # Average berechnen und abziehen
     average = np.average(emg)
     emg = emg - average
+    plot_steps_emg(time, emg, "nach_average" + label)
 
-    # Plot nachher
-    plot_steps(time, emg, "nach_average" + label)
-    
-    return emg
-
-def filter_signal(emg, time, low_band, high_band, fs, label):
-    # Plot vorher
-    plot_steps(time, emg, "vor_bandpass" + label)
-
+    # Signal mit Bandpass filtern
     b, a = scipy.signal.butter(4, [low_band, high_band], btype="bandpass", analog=False, fs=fs)
     emg = scipy.signal.filtfilt(b, a, emg)
+    plot_steps_emg(time, emg, "nach_filter" + label)
 
-    # Plot nachher
-    plot_steps(time, emg, "nach_bandpass" + label)
-
-    return emg
-
-def rectify_signal(emg, time, label):
-    # Plot vorher
-    plot_steps(time, emg, "vor_rectify" + label)
-
+    # Gleichrichten
     emg = abs(emg)
+    plot_steps_emg(time, emg, "nach_rectify" + label)
 
-    # Plot nachher
-    plot_steps(time, emg, "nach_rectify" + label)
-
-    return emg  
-
-def envelope_signal(emg, time, low_pass, fs, label):
-    # Plot vorher
-    plot_steps(time, emg, "vor_envelope" + label)
-
+    # Einhüllende bilden
     low_pass = low_pass / (fs / 2)
     b, a = scipy.signal.butter(4, low_pass, btype='lowpass')
     emg = scipy.signal.filtfilt(b, a, emg)
+    plot_steps_emg(time, emg, "nach_envelope" + label)
 
-    # Plot nachher
-    plot_steps(time, emg, "nach_envelope" + label)
-
-    return emg 
+    return emg
 
 
-# Datensätze importieren
+# Algorithmus zur Bearbeitung der Daten
 
-data_hamstring, emg_offset, emg_filtered, emg_rectified, emg_envelope = [], [], [], [], []
+data_hamstring, emg_processed = [], []
 column_names = ["angle", "a_x", "a_y", "a_z", "emg", "time"]
 
 directory = os.path.join(os.getcwd(), "images")
@@ -85,10 +63,7 @@ for i in range(5):
     data_hamstring[i]["angle"] = data_hamstring[i]["angle"] * (-1)
 
     # EMG-Daten verarbeiten
-    emg_offset.append(eliminate_offset(data_hamstring[i]["emg"], data_hamstring[i]["time"], "_emg" + str(i + 1)))
-    emg_filtered.append(filter_signal(emg_offset[i], data_hamstring[i]["time"], 20, 450, 1000, "_emg" + str(i + 1)))
-    emg_rectified.append(rectify_signal(emg_filtered[i], data_hamstring[i]["time"], "_emg" + str(i + 1)))
-    emg_envelope.append(envelope_signal(emg_rectified[i], data_hamstring[i]["time"], 15, 1000, "_emg" + str(i + 1)))
+    emg_processed.append(process_emg(data_hamstring[i]["emg"], data_hamstring[i]["time"], 1000, "_emg" + str(i + 1)))
 
     # Winkel plotten
     path = os.path.join(directory, "angle" + str(i + 1) + ".png")
