@@ -6,10 +6,6 @@ import scipy.signal
 import scipy.integrate
 import os
 
-
-def moving_average(x, w):
-    return np.convolve(x, np.ones(w), 'valid') / w
-
 # Funktionen zum Plotten der Arbeitsschritte
 def plot_steps_emg(time, emg, label):
     directory = os.path.join(os.getcwd(), "images")
