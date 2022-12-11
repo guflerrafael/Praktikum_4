@@ -81,11 +81,12 @@ for i in range(3):
     index_under_60 = np.where(data_hamstring[i]["angle"] < 60)[0]
     start_index = 0
 
-    for index in index_under_60:
-        if index > 500:
+    # Differenz zwischen zwei Indexen unter 60, wenn größer 500 -> letzer unter 60
+    for a in range(len(index_under_60)):
+        if index_under_60[a] - index_under_60[a - 1] > 500:
             break
 
-        start_index = index
+        start_index = index_under_60[a]
 
     # Daten vor Trigger abschneiden (100 ms nach Trigger -> Anfang der neuen Daten)
     to_drop = np.arange(0, start_index + 100)
