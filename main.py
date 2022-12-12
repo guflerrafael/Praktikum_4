@@ -50,10 +50,11 @@ def process_emg(emg, time, fs, label):
 # Algorithmus zur Bearbeitung der Daten
 
 data_hamstring, emg_processed = [], []
+
 column_names = ["angle", "a_x", "a_y", "a_z", "emg", "time"]
 
 directory_img = os.path.join(os.getcwd(), "images")
-directory_data = os.path.join(os.getcwd(), "Daten_Josh")
+directory_data = os.path.join(os.getcwd(), "Daten_Raf")
 directory = os.path.join(directory_img, "angle")
 
 for i in range(3):
@@ -64,8 +65,7 @@ for i in range(3):
     data_hamstring.append(pd.read_csv(path, sep="\t", names=column_names, skiprows= 50))
     data_hamstring[i]["angle"] = data_hamstring[i]["angle"] * (-1)
 
-    # EMG-Daten verarbeiten
-    emg_processed.append(process_emg(data_hamstring[i]["emg"], data_hamstring[i]["time"], 1000, "_emg" + str(i + 1)))
+    
 
     # ----------- Neuen Funktionen, noch nicht fertig ------------
     # Winkel plotten
@@ -88,8 +88,8 @@ for i in range(3):
 
         start_index = index_under_60[a]
 
-    # Daten vor Trigger abschneiden (100 ms nach Trigger -> Anfang der neuen Daten)
-    to_drop = np.arange(0, start_index + 100)
+    # Daten vor Trigger abschneiden (x Indexe nach Trigger -> Anfang der neuen Daten)
+    to_drop = np.arange(0, start_index + 200)
     data_hamstring[i] = data_hamstring[i].drop(to_drop)
 
     # Winkel plotten nach abschneiden
@@ -115,25 +115,35 @@ for i in range(3):
     plt.xlabel("Zeit / Sekunden")
     plt.ylabel("Winkel / Grad")
     plt.savefig(path)
-            
-    # Winkel ableiten -> Geschwindigkeit
-    d_phi_dt = np.diff(data_hamstring[i]["angle"]) / np.diff(data_hamstring[i]["time"])
-    data_hamstring[i] = data_hamstring[i].drop(len(data_hamstring[i]["time"]) - 1)
 
-    # Winkelgeschwindigkeit filtern
-    low_pass = 20
-    low_pass = low_pass / (1000 / 2)
-    b, a = scipy.signal.butter(4, low_pass, btype='lowpass')
-    d_phi_dt = scipy.signal.filtfilt(b, a, d_phi_dt)
+    # Ableitung vom Winkelverlauf bilden mit variabler Schrittweite
 
-    # Plotten
-    path = os.path.join(directory, "angle_after_derivative" + str(i + 1) + ".png")
+    diff_angle = []
+    help_vek = data_hamstring[i]["angle"].values
+    angle_len = len(help_vek)
+    resolution = 20
+    step_size = int(angle_len/resolution)
 
+    y = 0
+    while y < (angle_len-step_size):
+        diff_angle.append(abs(help_vek[y]-help_vek[y+step_size]))
+        y = y + step_size
+
+    # Maximalwert suchen
+    max_value = max(diff_angle)
+    index_max= (np.where(diff_angle==max_value))[0][0]
+    x_value=(index_max*step_size)-35
     plt.figure()
-    plt.plot(data_hamstring[i]["time"], d_phi_dt)
+    plt.plot(data_hamstring[i]["angle"].values)
+    plt.axvline(x_value, color='red')
     plt.xlabel("Zeit / Sekunden")
     plt.ylabel("Winkel / Grad")
-    plt.savefig(path)
+    plt.savefig("angle_endindex" + str(i + 1) + ".png")
+    
+
+    # EMG-Daten verarbeiten
+    emg_processed.append(process_emg(data_hamstring[i]["emg"], data_hamstring[i]["time"], 1000, "_emg" + str(i + 1)))
 
     # Idee zum berechnen des Indexes, wo Person abfällt: Um Mittelwert einen "Schlauch", wenn Werte drüber
     # oder drunter -> Person fällt ab, Versuch ist also fertig 
+    
