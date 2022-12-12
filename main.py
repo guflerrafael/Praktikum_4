@@ -118,34 +118,42 @@ for i in range(3):
     plt.savefig(path)
 
     # Ableitung vom Winkelverlauf bilden mit variabler Schrittweite
+    diff_angle, resolution, y = [], 20, 0
+    angle_len = len(data_hamstring[i]["angle"])
+    step_size = int(angle_len / resolution)
 
-    diff_angle = []
-    help_vek = data_hamstring[i]["angle"].values
-    angle_len = len(help_vek)
-    resolution = 20
-    step_size = int(angle_len/resolution)
-
-    y = 0
-    while y < (angle_len-step_size):
-        diff_angle.append(abs(help_vek[y]-help_vek[y+step_size]))
+    while y < (angle_len - step_size):
+        diff_angle.append(abs(data_hamstring[i]["angle"][y] - data_hamstring[i]["angle"][y + step_size]))
         y = y + step_size
 
     # Maximalwert suchen
-    max_value = max(diff_angle)
-    index_max= (np.where(diff_angle==max_value))[0][0]
-    x_value = (index_max*step_size) - 35
+    index_max = (np.where(diff_angle == max(diff_angle)))[0][0]
+    index_max = (index_max * step_size) - 35
+
+    # Plot mit maximalen Index
+    path = os.path.join(directory, "angle_max_index" + str(i + 1) + ".png")
 
     plt.figure()
-    plt.plot(data_hamstring[i]["angle"])
-    plt.axvline(x_value, color='red')
+    plt.plot(data_hamstring[i]["time"], data_hamstring[i]["angle"])
+    plt.axvline(data_hamstring[i]["time"][index_max], color='red') # Zeit in ms bei maximalen Index
     plt.xlabel("Zeit / Sekunden")
     plt.ylabel("Winkel / Grad")
-    plt.savefig("angle_endindex" + str(i + 1) + ".png")
+    plt.savefig(path)
     
+    # Daten nach maximalen Index abschneiden (Versuch beendet)
+    to_drop = np.arange(index_max, len(data_hamstring[i]["angle"]))
+    data_hamstring[i] = data_hamstring[i].drop(to_drop)
+    data_hamstring[i].reset_index(drop=True, inplace=True) # Indize auf Null zurücksetzen
+
+    # Plot mit maximalen Index
+    path = os.path.join(directory, "angle_after_end_cut" + str(i + 1) + ".png")
+
+    plt.figure()
+    plt.plot(data_hamstring[i]["time"], data_hamstring[i]["angle"])
+    plt.xlabel("Zeit / Sekunden")
+    plt.ylabel("Winkel / Grad")
+    plt.savefig(path)
 
     # EMG-Daten verarbeiten
     emg_processed.append(process_emg(data_hamstring[i]["emg"], data_hamstring[i]["time"], 1000, "_emg" + str(i + 1)))
-
-    # Idee zum berechnen des Indexes, wo Person abfällt: Um Mittelwert einen "Schlauch", wenn Werte drüber
-    # oder drunter -> Person fällt ab, Versuch ist also fertig 
     
