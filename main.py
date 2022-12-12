@@ -91,6 +91,7 @@ for i in range(3):
     # Daten vor Trigger abschneiden (x Indexe nach Trigger -> Anfang der neuen Daten)
     to_drop = np.arange(0, start_index + 200)
     data_hamstring[i] = data_hamstring[i].drop(to_drop)
+    data_hamstring[i].reset_index(drop=True, inplace=True) # Indize auf Null zurücksetzen
 
     # Winkel plotten nach abschneiden
     path = os.path.join(directory, "angle_after_cut" + str(i + 1) + ".png")
@@ -132,9 +133,10 @@ for i in range(3):
     # Maximalwert suchen
     max_value = max(diff_angle)
     index_max= (np.where(diff_angle==max_value))[0][0]
-    x_value=(index_max*step_size)-35
+    x_value = (index_max*step_size) - 35
+
     plt.figure()
-    plt.plot(data_hamstring[i]["angle"].values)
+    plt.plot(data_hamstring[i]["angle"])
     plt.axvline(x_value, color='red')
     plt.xlabel("Zeit / Sekunden")
     plt.ylabel("Winkel / Grad")
