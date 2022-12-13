@@ -161,8 +161,10 @@ for person in range(3):
         directory = os.path.join(directory, "result")
         path = os.path.join(directory, "result_angle_emg_" + str(person + 1) + "_" + str(dataset + 1) + ".png")
 
+        print(data_hamstring[person][dataset])
+
         plt.figure()
-        plt.plot(np.flip(data_hamstring[person][dataset]["angle"]), data_hamstring[person][dataset]["emg"])
+        plt.plot(data_hamstring[person][dataset]["angle"], data_hamstring[person][dataset]["emg"])
         plt.xlabel("Winkel / Grad")
         plt.ylabel("EMG / mV")
         plt.savefig(path)
