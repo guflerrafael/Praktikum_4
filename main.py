@@ -1,4 +1,3 @@
-import Lab3Functions as l3f
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,6 +16,7 @@ def plot_steps_emg(time, emg, label):
     plt.xlabel("Zeit / Sekunden")
     plt.ylabel("EMG / mV")
     plt.savefig(path)
+    plt.close()
 
 # Funktionen zum Plotten der Arbeitsschritte (Winkel)
 def plot_steps_angle(time, angle, line, index_max, label):
@@ -33,6 +33,7 @@ def plot_steps_angle(time, angle, line, index_max, label):
     plt.xlabel("Zeit / Sekunden")
     plt.ylabel("Winkel / Grad")
     plt.savefig(path)
+    plt.close()
 
 # Funktion zum Verarbeiten der EMG-Daten
 def process_emg(data, fs, label):
@@ -119,6 +120,10 @@ def process_angle(data, fs, label):
     data = data.drop(to_drop)
     data.reset_index(drop=True, inplace=True) # Indize auf Null zurücksetzen
 
+    # Maximalen Winkel auf 90 Grad setzen, damit alle gleichen Startpunkt haben
+    max_value = data["angle"][0]
+    data["angle"] = data["angle"] + (90 - max_value)
+
     plot_steps_angle(data["time"], data["angle"], False, 0, "angle_end_cut_" + label)
 
     return data
@@ -126,14 +131,12 @@ def process_angle(data, fs, label):
 # ---------------------------------------------------
 # ---------------------------------------------------
 
-data_hamstring, emg_processed, emg_processed_avg = [], [], []
-
+data_hamstring = []
 column_names = ["angle", "a_x", "a_y", "a_z", "emg", "time"]
+dataset_path, dataset_name = 0, 0
 
 directory_img = os.path.join(os.getcwd(), "images")
 directory_data = os.path.join(os.getcwd(), "data")
-directory = os.path.join(directory_img, "angle")
-dataset_path, dataset_name = 0, 0
 
 for person in range(3):
     for dataset in range(3):
@@ -159,7 +162,8 @@ for person in range(3):
         path = os.path.join(directory, "result_angle_emg_" + str(person + 1) + "_" + str(dataset + 1) + ".png")
 
         plt.figure()
-        plt.plot(data_hamstring[person][dataset]["angle"], data_hamstring[person][dataset]["emg"])
+        plt.plot(np.flip(data_hamstring[person][dataset]["angle"]), data_hamstring[person][dataset]["emg"])
         plt.xlabel("Winkel / Grad")
         plt.ylabel("EMG / mV")
         plt.savefig(path)
+        plt.close()
