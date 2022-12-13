@@ -35,32 +35,32 @@ def plot_steps_angle(time, angle, line, index_max, label):
     plt.savefig(path)
 
 # Funktion zum Verarbeiten der EMG-Daten
-def process_emg(emg, time, fs, label):
-    low_band, high_band, low_pass = 20, 450, 10
+def process_emg(data, fs, label):
+    low_band, high_band, low_pass = 20, 450, 5
 
-    plot_steps_emg(time, emg, "vor_average_" + label)
+    plot_steps_emg(data["time"], data["emg"], "vor_average_" + label)
 
     # Average berechnen und abziehen
-    average = np.average(emg)
-    emg = emg - average
-    plot_steps_emg(time, emg, "nach_average_" + label)
+    average = np.average(data["emg"])
+    data["emg"] = data["emg"] - average
+    plot_steps_emg(data["time"], data["emg"], "nach_average_" + label)
 
     # Signal mit Bandpass filtern
     b, a = scipy.signal.butter(4, [low_band, high_band], btype="bandpass", analog=False, fs=fs)
-    emg = scipy.signal.filtfilt(b, a, emg)
-    plot_steps_emg(time, emg, "nach_filter_" + label)
+    data["emg"] = scipy.signal.filtfilt(b, a, data["emg"])
+    plot_steps_emg(data["time"], data["emg"], "nach_filter_" + label)
 
     # Gleichrichten
-    emg = abs(emg)
-    plot_steps_emg(time, emg, "nach_rectify_" + label)
+    data["emg"] = abs(data["emg"])
+    plot_steps_emg(data["time"], data["emg"], "nach_rectify_" + label)
 
     # Einhüllende bilden
     low_pass = low_pass / (fs / 2)
     b, a = scipy.signal.butter(4, low_pass, btype='lowpass')
-    emg = scipy.signal.filtfilt(b, a, emg)
-    plot_steps_emg(time, emg, "nach_envelope_" + label)
+    data["emg"] = scipy.signal.filtfilt(b, a, data["emg"])
+    plot_steps_emg(data["time"], data["emg"], "nach_envelope_" + label)
 
-    return emg
+    return data
 
 # Funktion zum Verarbeiten der Winkeldaten
 def process_angle(data, fs, label):
@@ -113,6 +113,12 @@ def process_angle(data, fs, label):
     data = data.drop(to_drop)
     data.reset_index(drop=True, inplace=True) # Indize auf Null zurücksetzen
 
+    # Maximum suchen (davor nochmals abschneiden)
+    index_max_front = (np.where(data["angle"] == max(data["angle"])))[0][0]
+    to_drop = np.arange(0, index_max_front)
+    data = data.drop(to_drop)
+    data.reset_index(drop=True, inplace=True) # Indize auf Null zurücksetzen
+
     plot_steps_angle(data["time"], data["angle"], False, 0, "angle_end_cut_" + label)
 
     return data
@@ -120,25 +126,40 @@ def process_angle(data, fs, label):
 # ---------------------------------------------------
 # ---------------------------------------------------
 
-data_hamstring, emg_processed = [], []
+data_hamstring, emg_processed, emg_processed_avg = [], [], []
 
 column_names = ["angle", "a_x", "a_y", "a_z", "emg", "time"]
 
 directory_img = os.path.join(os.getcwd(), "images")
-directory_data = os.path.join(os.getcwd(), "Daten_Raf")
+directory_data = os.path.join(os.getcwd(), "data")
 directory = os.path.join(directory_img, "angle")
+dataset_path, dataset_name = 0, 0
 
-for i in range(3):
-    
-    path = os.path.join(directory_data, "phi_max_" + str(i + 1) + ".txt")
+for person in range(3):
+    for dataset in range(3):
+        dataset_name = "phi_emg_" + str(person + 1) + "_" + str(dataset + 1) + ".txt"
+        dataset_path = os.path.join(directory_data, dataset_name)
 
-    # Daten einlesen (Winkel, Beschleunigung, EMG, Zeit)
-    data_hamstring.append(pd.read_csv(path, sep="\t", names=column_names, skiprows= 50))
-    data_hamstring[i]["angle"] = data_hamstring[i]["angle"] * (-1)
+        # Person zu Liste hinzufügen (als leere Liste)
+        data_hamstring.append([])
 
-    # Winkel-Daten verarbeiten
-    data_hamstring[i] = process_angle(data_hamstring[i], 1000, str(i + 1))
+        # Daten einlesen (Winkel, Beschleunigung, EMG, Zeit)
+        data_hamstring[person].append(pd.read_csv(dataset_path, sep="\t", names=column_names, skiprows= 50))
+        data_hamstring[person][dataset]["angle"] = data_hamstring[person][dataset]["angle"] * (-1)
 
-    # EMG-Daten verarbeiten
-    emg_processed.append(process_emg(data_hamstring[i]["emg"], data_hamstring[i]["time"], 1000, "emg_" + str(i + 1)))
-    
+        # Winkel-Daten verarbeiten
+        data_hamstring[person][dataset] = process_angle(data_hamstring[person][dataset], 1000, str(person + 1) + "_" + str(dataset + 1))
+
+        # EMG-Daten verarbeiten
+        data_hamstring[person][dataset] = process_emg(data_hamstring[person][dataset], 1000, str(person + 1) + "_" + str(dataset + 1))
+
+        # Plot
+        directory = os.path.join(os.getcwd(), "images")
+        directory = os.path.join(directory, "result")
+        path = os.path.join(directory, "result_angle_emg_" + str(person + 1) + "_" + str(dataset + 1) + ".png")
+
+        plt.figure()
+        plt.plot(data_hamstring[person][dataset]["angle"], data_hamstring[person][dataset]["emg"])
+        plt.xlabel("Winkel / Grad")
+        plt.ylabel("EMG / mV")
+        plt.savefig(path)
