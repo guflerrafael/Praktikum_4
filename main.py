@@ -37,7 +37,7 @@ def plot_steps_angle(time, angle, line, index_max, label):
 
 # Funktion zum Verarbeiten der EMG-Daten
 def process_emg(data, fs, label):
-    low_band, high_band, low_pass = 20, 450, 5
+    low_band, high_band, low_pass = 20, 450, 8
 
     plot_steps_emg(data["time"], data["emg"], "vor_average_" + label)
 
@@ -128,10 +128,92 @@ def process_angle(data, fs, label):
 
     return data
 
+# EMG im Bezug auf Winkel mitteln, wobei hierbei weiter diskretisiert wird. Rückgabe: längster Winkel-Vektor und gemitteltes EMG
+def average_angle_emg(data_person):
+    angle_len, avg_emg, avg_angle = [], [], []
+    index_longest, length_longest, angle_increment = 0, 0, 1
+    windows, window_length = [], [] # Anzahl der Fenster für jeden Datensatz; Anzahl der Indize pro Fenster
+    angle_end = [] # Winkel, bei welchen von 3 auf 2 bzw. 1 Array gewechselt wird
+    first_1, first_2 = 0, 0
+    
+    # Längstes Array und Länge jedes einzelnen
+    for dataset in range(3):
+        length = len(data_person[dataset])
+        angle_len.append(length)
+
+        if length >= length_longest:
+            length_longest = length
+            index_longest = dataset
+
+    # Anzahl der Iterationsschritt (1 Grad) ermitteln
+    for dataset in range(3):
+        windows.append(int((90 - data_person[dataset]["angle"][angle_len[dataset] - 1]) / angle_increment))
+        window_length.append(int(angle_len[dataset] / windows[dataset]))
+
+    # EMG Daten mitteln, mit Abfrage welche noch verfügbar sind (noch nicht fertig)
+    for window_counter in range(windows[index_longest]):
+        index = []
+
+        for dataset in range(3):
+            index.append(window_counter * window_length[dataset])
+
+        # Alle 3 mitteln
+        if index[0] <= angle_len[0] and index[1] <= angle_len[1] and index[2] <= angle_len[2]: 
+            avg_emg.append((data_person[0]["emg"][index[0]] + data_person[1]["emg"][index[1]] + data_person[2]["emg"][index[2]]) / 3)
+            
+        # Nur mehr 2 mitteln
+        elif index[0] <= angle_len[0] and index[1] <= angle_len[1]: 
+            avg_emg.append((data_person[0]["emg"][index[0]] + data_person[1]["emg"][index[1]]) / 2)
+            
+            if first_1 == 0:
+                angle_end.append(90 - window_counter * angle_increment)
+                first_1 = 1
+            
+        elif index[1] <= angle_len[1] and index[2] <= angle_len[2]: 
+            avg_emg.append((data_person[1]["emg"][index[1]] + data_person[2]["emg"][index[2]]) / 2)
+
+            if first_1 == 0:
+                angle_end.append(90 - window_counter * angle_increment)
+                first_1 = 1
+
+        elif index[0] <= angle_len[0] and index[2] <= angle_len[2]: 
+            avg_emg.append((data_person[0]["emg"][index[0]] + data_person[2]["emg"][index[2]]) / 2)
+
+            if first_1 == 0:
+                angle_end.append(90 - window_counter * angle_increment)
+                first_1 = 1
+
+        # Nur mehr 1 Array verfügbar
+        elif index[0] <= angle_len[0]: 
+            avg_emg.append(data_person[0]["emg"][index[0]])
+
+            if first_2 == 0:
+                angle_end.append(90 - window_counter * angle_increment)
+                first_2 = 1
+            
+        elif index[1] <= angle_len[1]: 
+            avg_emg.append(data_person[1]["emg"][index[1]])
+
+            if first_2 == 0:
+                angle_end.append(90 - window_counter * angle_increment)
+                first_2 = 1
+            
+        elif index[2] <= angle_len[2]: 
+            avg_emg.append(data_person[2]["emg"][index[2]])
+            
+            if first_2 == 0:
+                angle_end.append(90 - window_counter * angle_increment)
+                first_2 = 1
+            
+        avg_angle.append(90 - window_counter * angle_increment)
+
+    return avg_emg, avg_angle, angle_end  
+
 # ---------------------------------------------------
 # ---------------------------------------------------
 
 data_hamstring = []
+emg_avg, angle_avg, angle_end, index_end = [], [], [], []
 column_names = ["angle", "a_x", "a_y", "a_z", "emg", "time"]
 dataset_path, dataset_name = 0, 0
 
@@ -156,15 +238,24 @@ for person in range(3):
         # EMG-Daten verarbeiten
         data_hamstring[person][dataset] = process_emg(data_hamstring[person][dataset], 1000, str(person + 1) + "_" + str(dataset + 1))
 
-        # Plot
-        directory = os.path.join(os.getcwd(), "images")
-        directory = os.path.join(directory, "result")
-        path = os.path.join(directory, "result_angle_emg_" + str(person + 1) + "_" + str(dataset + 1) + ".png")
+        # Angle_Emg_Avg mitteln
+        if dataset == 2:
+            emg_avg_p, angle_avg_p, angle_end_p = average_angle_emg(data_hamstring[person])
+            emg_avg.append(emg_avg_p)
+            angle_avg.append(angle_avg_p)
+            angle_end.append(angle_end_p)
 
-        plt.figure()
-        plt.plot(data_hamstring[person][dataset]["angle"], data_hamstring[person][dataset]["emg"])
-        plt.gca().invert_xaxis() # x-Achse mit abnehmenden Werten
-        plt.xlabel("Winkel / Grad")
-        plt.ylabel("EMG / mV")
-        plt.savefig(path)
-        plt.close()
+            # Plot
+            directory = os.path.join(os.getcwd(), "images")
+            directory = os.path.join(directory, "result")
+            path = os.path.join(directory, "result_angle_emg_avg_" + str(person + 1) + "_" + str(dataset + 1) + ".png")
+
+            plt.figure()
+            plt.plot(angle_avg[person], emg_avg[person])
+            plt.gca().invert_xaxis() # x-Achse mit abnehmenden Werten
+            plt.axvline(angle_end[person][0], color = "magenta", linestyle = "dashed")   
+            plt.axvline(angle_end[person][1], color = "red", linestyle = "dashed")   
+            plt.xlabel("Winkel / Grad")
+            plt.ylabel("EMG / mV")
+            plt.savefig(path)
+            plt.close()
