@@ -11,8 +11,13 @@ def plot_steps_emg(time, emg, label):
     directory = os.path.join(directory, "emg")
     path = os.path.join(directory, label + ".png")
 
+    # Array als Zeitreferenz
+    time_delta = time[len(time) - 1] - time[0]
+    ms_delta = time_delta / len(time)
+    time_sec = np.arange(0, len(time)) * ms_delta / 1000
+
     plt.figure()
-    plt.plot(time, emg)
+    plt.plot(time_sec, emg)
     plt.xlabel("Zeit / Sekunden")
     plt.ylabel("EMG / mV")
     plt.savefig(path)
@@ -24,11 +29,16 @@ def plot_steps_angle(time, angle, line, index_max, label):
     directory = os.path.join(directory, "angle")
     path = os.path.join(directory, label + ".png")
 
+    # Array als Zeitreferenz
+    time_delta = time[len(time) - 1] - time[0]
+    ms_delta = time_delta / len(time)
+    time_sec = np.arange(0, len(time)) * ms_delta / 1000
+
     plt.figure()
-    plt.plot(time, angle)
+    plt.plot(time_sec, angle)
 
     if line == True:
-        plt.axvline(time[index_max], color='red') # Zeit in ms bei maximalen Index
+        plt.axvline(index_max * ms_delta / 1000, color='red') # Zeit in ms bei maximalen Index
 
     plt.xlabel("Zeit / Sekunden")
     plt.ylabel("Winkel / Grad")
