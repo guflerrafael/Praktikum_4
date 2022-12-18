@@ -113,6 +113,18 @@ def process_angle(data, fs, label):
         diff_angle.append(abs(data["angle"][y] - data["angle"][y + step_size]))
         y = y + step_size
 
+    # Plot für Ableitung mit variabler Schrittweite
+    directory = os.path.join(os.getcwd(), "images")
+    directory = os.path.join(directory, "angle")
+    path = os.path.join(directory, "angle_differenz_" + label + ".png")
+
+    plt.figure()
+    plt.plot(diff_angle)
+    plt.xlabel("Bereiche")
+    plt.ylabel("Differenz / Grad")
+    plt.savefig(path)
+    plt.close()
+
     # Maximalwert suchen
     index_max = (np.where(diff_angle == max(diff_angle)))[0][0]
     index_max = (index_max * step_size) - 35
